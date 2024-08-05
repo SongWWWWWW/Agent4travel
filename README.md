@@ -6,4 +6,4 @@ conda activate agent4train
 pip install -r requirements.txt
 ```
 ### 效果展示
-[示例视频](https://github.com/user-attachments/assets/ed4dcf73-c588-4000-80f5-c920ba172fa5)
+[示例视频](https://github.com/SongWWWWWW/Agent4train/blob/master/video.mp4)
