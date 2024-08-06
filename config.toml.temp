@@ -1,0 +1,5 @@
+[agent4train]
+openai_key = ""
+openai_url = ""
+ak = "" # 服务端
+browser_ak = "" # 浏览器端
