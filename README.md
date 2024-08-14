@@ -1,4 +1,13 @@
 # Agent4train
+> [!IMPORTANT]
+> **重大更新：**
+> 2024/8/14: 更新内容
+> 1. 将agent，backend，frontend，Model，tools部分分开
+> 2. 将所有配置全部集中在配置文件
+> 3. 将agent流程分开，分为SuperAgent和ToolsAgent，重写对话流程
+> 4. 将模型问答，baidu api 调用放置到后端api中 
+
+
 ### 按照下面这个步骤进行环境配置
 ```bash
 conda create -n agent4train python=3.12
