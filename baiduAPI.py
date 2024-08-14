@@ -1,15 +1,13 @@
-from typing import Dict, List, Tuple
+from typing import Dict, List
 import os,sys
 sys.path.append(os.path.dirname(__file__))
 # import folium
 import requests
 # from streamlit_folium import st_folium
-from html_st import Html
+from frontend.html_st import Html
 from sdata import  SData
 import toml
-with open('config.toml', 'r') as f:
-    config = toml.load(f)
-ak = config['agent4train']['ak']
+
 
 
 def transform(ak, address):
@@ -26,14 +24,14 @@ class BaiduAPI:
         params = {
             'address': address,
             'output': 'json',
-            'ak': ak
+            'ak': self.ak
         }
         response = requests.get(url, params=params)
 
         if response.status_code == 200:
             result = response.json()
             # 打印结果
-            print(result)
+            print("地址嵌入",result['result']['location'])
             # 提取经纬度
             if result['status'] == 0:
                 lat = result['result']['location']['lat']
@@ -60,7 +58,7 @@ class BaiduAPI:
 
         # 请求参数
         params = {
-            'ak': ak,
+            'ak': self.ak,
             'output': 'json',
             'origin': start_point,
             'destination': end_point
@@ -94,19 +92,21 @@ class BaiduAPI:
         return middle_point
     def parse(self, start_point, end_point):
         result = self.path_planing(start_point,end_point)
-        print(result)
+        print("parse: ",result['message'])
         start_point = (result['result']['origin']['lng'], result['result']['origin']['lat'])
         end_point = (result['result']['destination']['lng'], result['result']['destination']['lat'])
         parse_result = self.parse_path_planing_result(result)
         # print("parse \n\n\n\n\n\n")
         return start_point,end_point,parse_result
-    def get_html(self,start,end):
+    def get_html(self,start,end,browser_ak:str=None):
         # start = "哈尔滨工业大学威海"
         # end = "山东大学威海"
         start, end, middle = self.parse(start, end)
-        with open("config.toml","r") as f:
-            config = toml.load(f)
-        browser_ak = config["agent4train"]["browser_ak"]
+        if browser_ak is None:
+            with open("config.toml","r") as f:
+                config = toml.load(f)
+            browser_ak = config["agent4travel"]["browser_ak"]
+
         html = Html(browser_ak, start, middle)
         html_temp = html.html
         return html_temp

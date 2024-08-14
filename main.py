@@ -1,57 +1,30 @@
 import asyncio
-from agent import DialogAgent
+import json
+import time
+from random import uniform
+from typing import List, Dict
+import requests
+import os,sys
+sys.path.append(os.path.dirname(__file__))
+
+from agent import  SuperAgent
 import streamlit as st
 # from openai import OpenAI
-from model import Open_AI
-def run_async(cor):
-    '''
-    在同步环境中运行异步代码.
-    '''
-    try:
-        loop = asyncio.get_event_loop()
-    except:
-        loop = asyncio.new_event_loop()
-    return loop.run_until_complete(cor)
-
-
-def iter_over_async(ait, loop=None):
-    '''
-    将异步生成器封装成同步生成器.
-    '''
-    ait = ait.__aiter__()
-
-    async def get_next():
-        try:
-            obj = await ait.__anext__()
-            return False, obj
-        except StopAsyncIteration:
-            return True, None
-
-    if loop is None:
-        try:
-            loop = asyncio.get_event_loop()
-        except:
-            loop = asyncio.new_event_loop()
-
-    while True:
-        done, obj = loop.run_until_complete(get_next())
-        if done:
-            break
-        yield obj
-st.title("      Agent for train")
-response = None
-# Set OpenAI API key from Streamlit secrets
+from Model.model import Open_AI
 import toml
+from Model.model import get_openai_stream
+
 config = {}
 with open("config.toml",'r') as f:
     config = toml.load(f)
-# print(config["agent4train"]["openai_key"])
 
-client = Open_AI(api_key=config["agent4train"]["openai_key"],base_url=config["agent4train"]["openai_url"])
 
-# Set a default model
-# if "openai_model" not in st.session_state:
-#     st.session_state["openai_model"] = "gpt-3.5-turbo"
+
+st.title("      Agent for travel")
+response = None
+# Set OpenAI API key from Streamlit secrets
+client = Open_AI(api_key=config["agent4travel"]["openai_key"],base_url=config["agent4travel"]["openai_url"])
+
 
 # Initialize chat history
 if "messages" not in st.session_state:
@@ -64,23 +37,45 @@ for message in st.session_state.messages:
 
 # Accept user input
 if prompt := st.chat_input("What is up?"):
-
     with st.chat_message("user"):
         st.markdown(prompt)
 
+
+def get_content(stream):
+    text = ""
+    def generator(t:str):
+        for i in t:
+            yield i
+            t = uniform(0,0.1)
+            time.sleep(t)
+    try:
+        for s in stream:
+            text += s
+        text = json.loads(text)
+        if text["策略"] == "用户对话":
+            text = text["对话"]
+        else:
+            text = "正在为您调用工具..."
+        return generator(text)
+    except Exception as e:
+        print("Error parsing main.py",e)
+    pass
+
+
 with st.chat_message("assistant"):
     if prompt != None:
-        agent = DialogAgent()
+        # print(prompt)
+        agent = SuperAgent()
+        stream = get_openai_stream(sys_prompt=agent.sys_prompt,prompt=agent.pre_prompt.format(text=prompt.replace("{","{{").replace("}","}}")),messages=st.session_state.messages)
+        # stream,
+        stream = list(stream)
+        s = get_content(stream)
+        response = st.write_stream(s)
 
-        stream = client.get_streaming_completion(system_prompt=agent.sys_prompt,prompt=agent.pre_prompt+"\n"+prompt,messages=st.session_state.messages)
-        response = st.write_stream(stream)
-
-        if response is not None:
-            print(response)
-            out = agent.parse_output(response)
-            if out:
+        if response is not None :
+            out = agent.parse_output(stream)
+            if out is not None:
                 st.write("路径规划如下")
-
                 html_component = st.components.v1.html(out, height=600)
     else:
         stream = None
