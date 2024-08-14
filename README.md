@@ -17,7 +17,8 @@ pip install -r requirements.txt
 ```bash
 # 请将config.toml.temp更名为config.toml,并将环境变量填入
 #启动👇
-streamlit run main.py
+python backend/api.py # 启动后端
+streamlit run main.py # 启动前端
 ```
 ### 效果展示
 [示例视频](https://github.com/SongWWWWWW/Agent4train/blob/master/video.mp4)
