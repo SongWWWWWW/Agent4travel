@@ -1,9 +1,13 @@
-# from builtins import function
+#!/usr/bin/env python3
+
 import json
-from typing import Generator, Union
+import traceback
+from typing import Generator, Union, Dict, List
+
+import requests
 
 from prompt import ControllerPrompt,DialogPrompt, SuperPrompt
-from tools import  tools_dict
+from tools.tools import tools_dict
 from Model.model import get_openai_stream
 import os,sys
 sys.path.append(os.path.dirname(__file__))
@@ -48,6 +52,8 @@ class SuperAgent(BaseAgent,SuperPrompt):
     def __init__(self):
         super(SuperPrompt,self).__init__()
         super(BaseAgent,self).__init__()
+
+
     def parse_output(self,output:Union[list,str]):
         fuc = None
         tools_select = None
@@ -73,7 +79,6 @@ class SuperAgent(BaseAgent,SuperPrompt):
                 print(tools_select)
                 args = tools_select["args"]
                 print("工具参数: ", args)
-
                 return fuc(*args)
             return None
         except Exception as e:
@@ -94,5 +99,8 @@ if __name__ == "__main__":
     # if html_component:
     #     st.write(f"点击位置经纬度: {html_component}")
     agent = SuperAgent()
-    print(agent.sys_prompt)
-    print(agent.pre_prompt)
+    # print(agent.sys_prompt)
+    # print(agent.pre_prompt)
+    result = requests.get("http://127.0.0.1:8000/search/?keyword=大连")
+
+    print(agent.scenic_spot_search(json.loads(result.text)))
