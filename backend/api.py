@@ -15,6 +15,8 @@ from baiduAPI import BaiduAPI
 from Model.model import  Open_AI
 import toml
 from pydantic import BaseModel,Field
+from auto_gptq import AutoGPTQForCausalLM
+from transformers import LlamaTokenizer
 class Message(BaseModel):
     role: str
     content: str
@@ -32,7 +34,16 @@ with open('../config.toml', 'r') as f:
 
 app = FastAPI()
 baidu = BaiduAPI(ak)
-openai = Open_AI(api_key, base_url)
+# openai = Open_AI(api_key, base_url)
+# 用yuan
+path = '/root/autodl-fs/YuanLLM/Yuan2-M32-HF-INT4'
+
+print("Creat tokenizer...")
+tokenizer = LlamaTokenizer.from_pretrained(path, add_eos_token=False, add_bos_token=False, eos_token='<eod>')
+tokenizer.add_tokens(['<sep>', '<pad>', '<mask>', '<predict>', '<FIM_SUFFIX>', '<FIM_PREFIX>', '<FIM_MIDDLE>','<commit_before>','<commit_msg>','<commit_after>','<jupyter_start>','<jupyter_text>','<jupyter_code>','<jupyter_output>','<empty_output>'], special_tokens=True)
+
+print("Creat model...")
+model = AutoGPTQForCausalLM.from_quantized(path, trust_remote_code=True).cuda()
 
 # 允许所有来源访问
 app.add_middleware(
@@ -42,6 +53,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 def bing_image_search(query: str):
     url = 'https://www.bing.com/images/search'
     params = {'q': query}
@@ -215,15 +227,25 @@ async def chat_completion(request: StreamModel):
     ...             print(chunk)
     """
     try:
-        stream = openai.get_streaming_completion(request.sys_prompt,request.prompt,request.messages)
-        # 将流对象转换为可以用于StreamingResponse的生成器
+        #stream = openai.get_streaming_completion(request.sys_prompt,request.prompt,request.messages)
+        # 用yuan
+        prompt = request.sys_prompt + request.prompt
+        prompt += "<sep>"
+        inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+        outputs = model.generate(**inputs, do_sample=False, max_new_tokens=256)
+        output = tokenizer.decode(outputs[0])
+        response = output.split("<sep>")[-1]
         def generate():
-            for chunk in stream:
-                # yield chunk
-                if chunk.choices[0].delta.content:
-                    print(chunk)
-                    # 直接返回内容str，去除其他无用的数据，便于encode和decode的处理
-                    yield chunk.choices[0].delta.content
+            for chunk in response.split(" "):
+                yield chunk
+        # 将流对象转换为可以用于StreamingResponse的生成器
+        # def generate():
+        #     for chunk in stream:
+        #         # yield chunk
+        #         if chunk.choices[0].delta.content:
+        #             print(chunk)
+        #             # 直接返回内容str，去除其他无用的数据，便于encode和decode的处理
+        #             yield chunk.choices[0].delta.content
         response = StreamingResponse(generate(), media_type="text/event-stream")
         # 设置额外的响应头
         response.headers["Cache-Control"] = "no-cache"  # 禁用缓存
@@ -322,6 +344,9 @@ async def search(keyword: str):
     """
     search_results = bing_search(keyword)
     return {'search_results': search_results}
+
+
+
 
 if __name__ == "__main__":
     # 为什么要将所有的模型的调用放置在后端统一管理？
