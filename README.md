@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 [//]: # (# Agent4travel)
 
 [//]: # (> [!IMPORTANT])
@@ -25,9 +24,6 @@
 
 # Agent4travel
 
-=======
-# Agent4travel
->>>>>>> origin/main
 > [!IMPORTANT]
 > **重大更新：**
 >
