@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Tuple
 import os,sys
 sys.path.append(os.path.dirname(__file__))
 # import folium
@@ -27,9 +27,13 @@ class BaiduAPI:
             'ak': self.ak
         }
         response = requests.get(url, params=params)
-
+        result = response.json()
+        if result["status"] == 1:
+            return None
         if response.status_code == 200:
-            result = response.json()
+
+
+            print(result)
             # 打印结果
             print("地址嵌入",result['result']['location'])
             # 提取经纬度
@@ -110,11 +114,43 @@ class BaiduAPI:
         html = Html(browser_ak, start, middle)
         html_temp = html.html
         return html_temp
+    def multi_parse_path_planing_result(self, start,end) -> Tuple[List[Tuple],int]:
+        result = self.path_planing(start,end)
+        middle_point = []
+        # 解析数据
+        if result["message"] == 'ok':
+            for i in result['result']['routes']:
+                route = []
+                for j in i['steps']:
+                    k = SData(path=j["path"],instruction=j["instruction"])
+                    route.append(k)
+                middle_point.append(route)
+            # pass
+        else:
+            print('Error:', result.get('message', 'Unknown error'))
+        middle_point = middle_point[0]
+        sum_path = []
+        for i in middle_point:
+            for j in i.path:
+                sum_path.append(j)
+
+        return sum_path, result["result"]["routes"][0]["distance"]
 
 if __name__ == '__main__':
     st = "113.34996543415,22.843338917576;113.34983562901,22.843158483807;113.34981568662,22.842928424156"
     s = SData(st)
     print(s)
+    start = "哈尔滨工业大学威海"
+    end = "山东大学威海"
+    import toml
+    with open('config.toml', 'r') as f:
+        i = toml.load(f)
+        ak = i["agent4travel"]["ak"]
+    api = BaiduAPI(ak)
+    a,b = api.multi_parse_path_planing_result(start,end)
+    print(type(a[0][0]))
+    print(b)
+
     # api = BaiduAPI(ak)
     # # text = ""
     # # with open("result.json", "r") as f:

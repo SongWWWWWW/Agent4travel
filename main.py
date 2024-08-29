@@ -40,18 +40,19 @@ if prompt := st.chat_input("What is up?"):
     with st.chat_message("user"):
         st.markdown(prompt)
 
-
+def generator(t:str):
+    for i in t:
+        yield i
+        t = uniform(0,0.1)
+        time.sleep(t)
 def get_content(stream):
     text = ""
-    def generator(t:str):
-        for i in t:
-            yield i
-            t = uniform(0,0.1)
-            time.sleep(t)
+
     try:
         for s in stream:
             text += s
         text = json.loads(text)
+        print(text)
         if text["策略"] == "用户对话":
             text = text["对话"]
         else:
@@ -71,16 +72,27 @@ with st.chat_message("assistant"):
         stream = list(stream)
         s = get_content(stream)
         response = st.write_stream(s)
+        print(response)
 
         if response is not None :
             out = agent.parse_output(stream)
             if out is not None:
-                st.write("路径规划如下")
-                html_component = st.components.v1.html(out, height=600)
+                if "<!DOCTYPE html>" in out:
+                    st.write("路径规划如下")
+                    html_component = st.components.v1.html(out, height=600)
+                elif "http" in out:
+                    st.image(out,width=600)
+                elif isinstance(out,list):
+                    s = ""
+                    for i in out:
+                        s += i + ","
+                    response_agent = "景点有"+s[:-1]
+                    st.write_stream(generator(response_agent))
+
     else:
         stream = None
 
 if prompt is not None:
     st.session_state.messages.append({"role": "user", "content": prompt})
 if response is not None:
-    st.session_state.messages.append({"role": "assistant", "content": response})
+    st.session_state.messages.append({"role": "assistant", "content": response + response_agent})

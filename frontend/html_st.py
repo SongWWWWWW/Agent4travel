@@ -62,11 +62,15 @@ class Html:
         self.html = html_temp.format(ak=ak,start=str(start),path=self.transform_parse(path))
     def transform_parse(self,parse:List[List[SData]]):
         # SData.path  : List[Tuple]
-        parse = parse[0]
         point = []
-        for i in parse:
-            for j in i.path:
-                point.append({ "lng":j[1],"lat":j[0]})
+        if isinstance(parse[0], List):
+            parse = parse[0]
+            for i in parse:
+                for j in i.path:
+                    point.append({ "lng":j[1],"lat":j[0]})
+        elif isinstance(parse[0],Tuple):
+            for j in parse:
+                point.append({"lng": j[1], "lat": j[0]})
         return str(point)
 
 
